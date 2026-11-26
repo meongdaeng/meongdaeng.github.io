@@ -8,7 +8,7 @@
 1. 인사이트 기다리기: 17:30 "멍댕툰 인사이트"가 insights/게시물.csv(인스타 링크)를 새로 쓴 뒤에 돌아야
    새 회차에 링크가 붙는다. 컴퓨터를 늦게 켜면 두 작업이 같이 시작되므로, 오늘 17:30 이후 게시물.csv가
    갱신됐고 인사이트 작업이 돌고 있지 않을 때까지 30초마다 확인하며 기다린다. 20분이 지나면 있는 자료로 진행한다.
-2. tools/build_data.py로 src/data/site.json, public/covers/, public/profile.jpg를 다시 만든다.
+2. tools/build_data.py로 src/data/site.json, public/covers/, public/profile.jpg, public/threads/(스레드 업로드용 장)를 다시 만든다.
 3. 그 데이터 파일만 커밋한다 (사이트 세션이 고치던 다른 파일은 건드리지 않는다). 바뀐 게 없으면 끝.
 4. origin(main)에 푸시한다. 키는 저장소 설정 core.sshCommand의 배포 키. GitHub Actions가 배포한다.
 
@@ -30,7 +30,7 @@ INSIGHTS_TASK = "멍댕툰 인사이트"
 INSIGHTS_AT = dt.time(17, 30)
 WAIT_STEP = 30          # 초
 WAIT_MAX = 20 * 60      # 초
-DATA_PATHS = ["src/data/site.json", "public/covers", "public/profile.jpg"]
+DATA_PATHS = ["src/data/site.json", "public/covers", "public/profile.jpg", "public/threads"]
 LOG = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "meongdaeng" / "site-update.log"
 GIT = shutil.which("git") or r"C:\Program Files\Git\cmd\git.exe"
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -84,15 +84,18 @@ def main():
     p = run([sys.executable.replace("pythonw.exe", "python.exe"), "-X", "utf8", str(SITE / "tools" / "build_data.py")], cwd=ROOT)
     for line in (p.stdout or "").strip().splitlines()[-3:]:
         log(f"  build_data: {line}")
-    run([GIT, "add", "--", *DATA_PATHS])
-    changed = run([GIT, "diff", "--cached", "--name-only", "--", *DATA_PATHS]).stdout.split()
+    # 아직 없는 경로(예: 스레드 칸이 하나도 없을 때 public/threads)는 git이 오류를 내므로 뺀다
+    paths = [p for p in DATA_PATHS
+             if (SITE / p).exists() or run([GIT, "ls-files", "--", p]).stdout.strip()]
+    run([GIT, "add", "-A", "--", *paths])
+    changed = run([GIT, "diff", "--cached", "--name-only", "--", *paths]).stdout.split()
     if not changed:
         log("바뀐 것 없음. 끝")
         return
     log(f"바뀐 파일 {len(changed)}개: {', '.join(changed[:6])}{' …' if len(changed) > 6 else ''}")
     msg = (f"회차 목록 자동 갱신 ({dt.date.today():%Y-%m-%d})\n\n"
            "tools/auto_update.py가 episodes/README.md·insights/게시물.csv에서 다시 만든 데이터.\n")
-    run([GIT, "commit", "-q", "-m", msg, "--", *DATA_PATHS])
+    run([GIT, "commit", "-q", "-m", msg, "--", *paths])
     run([GIT, "push", "-q", "origin", "main"])
     log("커밋·푸시 끝. GitHub Actions가 배포한다")
 

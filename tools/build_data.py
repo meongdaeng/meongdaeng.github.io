@@ -9,6 +9,10 @@
 - insights/게시물.csv (운영 세션의 scripts/insights.py가 쓴다): 그 회차 "게시글"의 permalink만. 숫자는 가져가지 않는다.
 - 프로필.md: 인스타 이름 칸·소개, 인스타·유튜브 주소.
 - images/프로필/프로필-1080.png: 파비콘·공유 미리보기용 프로필 그림.
+- 회차 caption.md "## 스레드" 칸의 "올릴 장: 01~NN" 줄 (콘티 세션이 쓴다): 올린 회차의 그 범위 장을
+  1080×1350 그대로 public/threads/NNN/01.jpg …로. 스레드 API가 공개 주소에서 이미지를 가져가기 때문이다
+  (운영 세션의 scripts/threads.py가 https://meongdaengtoon.com/threads/… 를 쓴다). 사이트 화면에는 링크하지 않는다.
+- images/스레드/끝장.png: 스레드 공통 끝장. 있으면 public/threads/end.jpg로.
 사이트 꾸밈 그림(public/art/)은 이 스크립트가 아니라 make_art.py가 만든다.
 
 안 올린 회차는 표지·제목 모두 넣지 않고, 목록에서 빠진 회차의 표지 파일은 지운다.
@@ -29,14 +33,17 @@ EPISODES = ROOT / "episodes"
 POSTS = ROOT / "insights" / "게시물.csv"
 PROFILE_MD = ROOT / "프로필.md"
 PROFILE_IMG = ROOT / "images" / "프로필" / "프로필-1080.png"
+THREADS_END = ROOT / "images" / "스레드" / "끝장.png"
 
 DATA = SITE / "src" / "data" / "site.json"
 PUBLIC = SITE / "public"
 COVERS = PUBLIC / "covers"
+THREADS = PUBLIC / "threads"
 
 COVER_W = 540      # 1080×1350 → 540×675 (카드 표지)
 PROFILE_W = 320
 JPEG_Q = 82
+THREADS_Q = 92     # 스레드 장: 글씨가 뭉개지지 않게 높은 화질, 색 줄이기(4:2:0) 없이
 
 ROW = re.compile(r"^\|\s*\[(\d{3})\]\(([^/]+)/storyboard\.md\)\s*\|(.*)\|\s*$")
 
@@ -56,6 +63,60 @@ def jpeg(src, width):
     buf = io.BytesIO()
     im.save(buf, "JPEG", quality=JPEG_Q, optimize=True, progressive=True)
     return buf.getvalue()
+
+
+def jpeg_full(src):
+    im = Image.open(src).convert("RGB")
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=THREADS_Q, subsampling=0, optimize=True)
+    return buf.getvalue()
+
+
+def threads_range(folder):
+    """caption.md "## 스레드" 칸의 "올릴 장: 01~05" → (1, 5). 칸이나 줄이 없으면 None."""
+    cap = EPISODES / folder / "caption.md"
+    if not cap.exists():
+        return None
+    text = cap.read_text(encoding="utf-8").replace("\r\n", "\n")
+    m = re.search(r"^## 스레드\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+    r = m and re.search(r"올릴 장\s*[:：]?\s*(\d+)\s*[~∼-]\s*(\d+)", m.group(1))
+    return (int(r.group(1)), int(r.group(2))) if r else None
+
+
+def threads_images(eps):
+    """올린 회차의 스레드 장과 공통 끝장을 public/threads/에 쓰고, 범위에서 빠진 파일은 지운다."""
+    changed, keep, notes = [], set(), []
+    for e in eps:
+        rng = threads_range(e["folder"])
+        if not rng:
+            continue
+        first, last = rng
+        for i in range(first, last + 1):
+            src = EPISODES / e["folder"] / "slides" / f"{i:02d}.png"
+            if not src.exists():
+                notes.append(f"{e['num']} {i:02d}장 원본 없음")
+                continue
+            dst = THREADS / e["num"] / f"{i:02d}.jpg"
+            keep.add(dst)
+            if write_if_changed(dst, jpeg_full(src)):
+                changed.append(dst)
+        notes.append(f"{e['num']} {first:02d}~{last:02d}")
+    if THREADS_END.exists():
+        dst = THREADS / "end.jpg"
+        keep.add(dst)
+        if write_if_changed(dst, jpeg_full(THREADS_END)):
+            changed.append(dst)
+    else:
+        notes.append("끝장 없음(건너뜀)")
+    if THREADS.exists():
+        for f in THREADS.rglob("*"):
+            if f.is_file() and f not in keep:
+                f.unlink()
+                changed.append(f)
+        for d in sorted((d for d in THREADS.rglob("*") if d.is_dir()), reverse=True):
+            if not any(d.iterdir()):
+                d.rmdir()
+    return changed, notes
 
 
 def uploaded_episodes():
@@ -136,12 +197,16 @@ def main():
     if write_if_changed(PUBLIC / "profile.jpg", jpeg(PROFILE_IMG, PROFILE_W)):
         changed.append(PUBLIC / "profile.jpg")
 
+    t_changed, t_notes = threads_images(eps)
+    changed += t_changed
+
     data = {"profile": profile(), "start": "000", "episodes": out}
     text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     if write_if_changed(DATA, text.encode("utf-8")):
         changed.append(DATA)
 
     missing = [e["num"] for e in out if not e["link"]]
+    print(f"스레드 이미지: {', '.join(t_notes) if t_notes else '스레드 칸 있는 회차 없음'}")
     print(f"올린 회차 {len(out)}편, 바뀐 파일 {len(changed)}개")
     if missing:
         print("게시글 링크가 아직 없는 회차 (프로필 링크로 대신함):", ", ".join(missing))
