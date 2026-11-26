@@ -1,0 +1,141 @@
+{
+  "profile": {
+    "name": "멍댕툰 | 게이커플툰",
+    "bio": [
+      "🐶 188cm 대형견 멍이 × 170cm 소형견 댕이",
+      "🌈 연애하는 두 남자",
+      "멍이와 댕이의 게이커플 이야기"
+    ],
+    "instagram": {
+      "url": "https://www.instagram.com/meongdaeng.toon",
+      "handle": "@meongdaeng.toon"
+    },
+    "youtube": {
+      "url": "https://www.youtube.com/channel/UCSRV5n3iOQhl9k49B6HebHA",
+      "handle": "@멍댕툰"
+    }
+  },
+  "start": "000",
+  "episodes": [
+    {
+      "num": "000",
+      "title": "계정 소개",
+      "order": 1,
+      "date": "2026-10-22",
+      "cover": "covers/000.jpg",
+      "link": "https://www.instagram.com/p/DeyvOjJo4wq/"
+    },
+    {
+      "num": "004",
+      "title": "남자가 남자를 사랑할 때",
+      "order": 2,
+      "date": "2026-10-26",
+      "cover": "covers/004.jpg",
+      "link": "https://www.instagram.com/p/DeyxwDro2VO/"
+    },
+    {
+      "num": "005",
+      "title": "18cm 큰 남자친구를 만나는 이유",
+      "order": 3,
+      "date": "2026-10-26",
+      "cover": "covers/005.jpg",
+      "link": "https://www.instagram.com/p/De69aUjI-TZ/"
+    },
+    {
+      "num": "006",
+      "title": "남자가 대형견남에게 기습 뽀뽀당했을 때",
+      "order": 4,
+      "date": "2026-10-28",
+      "cover": "covers/006.jpg",
+      "link": "https://www.instagram.com/p/DfBjbWvo1C8/"
+    },
+    {
+      "num": "007",
+      "title": "게이는 어디서 만나?",
+      "order": 5,
+      "date": "2026-10-31",
+      "cover": "covers/007.jpg",
+      "link": "https://www.instagram.com/p/DfIxaXfE-6_/"
+    },
+    {
+      "num": "001",
+      "title": "게이커플 연고전에 출몰하다 ①",
+      "order": 6,
+      "date": "2026-11-02",
+      "cover": "covers/001.jpg",
+      "link": "https://www.instagram.com/p/DfN9p-dgebe/"
+    },
+    {
+      "num": "002",
+      "title": "게이커플 연고전에 출몰하다 ②",
+      "order": 7,
+      "date": "2026-11-04",
+      "cover": "covers/002.jpg",
+      "link": "https://www.instagram.com/p/DfSfR5HAfzO/"
+    },
+    {
+      "num": "003",
+      "title": "게이커플 연고전에 출몰하다 ③",
+      "order": 8,
+      "date": "2026-11-06",
+      "cover": "covers/003.jpg",
+      "link": "https://www.instagram.com/p/DfX48w9k_aS/"
+    },
+    {
+      "num": "011",
+      "title": "게이라고 생각까지 같아야 해?",
+      "order": 9,
+      "date": "2026-11-09",
+      "cover": "covers/011.jpg",
+      "link": "https://www.instagram.com/p/Dfg784cIzjU/"
+    },
+    {
+      "num": "008",
+      "title": "나 사실은 남자 좋아해 ①",
+      "order": 10,
+      "date": "2026-11-12",
+      "cover": "covers/008.jpg",
+      "link": "https://www.instagram.com/p/Dfo86EbI0pk/"
+    },
+    {
+      "num": "009",
+      "title": "나 사실은 남자 좋아해 ②",
+      "order": 11,
+      "date": "2026-11-15",
+      "cover": "covers/009.jpg",
+      "link": "https://www.instagram.com/p/DfwHrX6o3gl/"
+    },
+    {
+      "num": "032",
+      "title": "게이짓 하면서 천국은 가고 싶나 보지?",
+      "order": 12,
+      "date": "2026-11-17",
+      "cover": "covers/032.jpg",
+      "link": "https://www.instagram.com/p/Df0_xABo_S2/"
+    },
+    {
+      "num": "034",
+      "title": "게이커플 인스타툰, 팔로워 0에서 천 명까지",
+      "order": 13,
+      "date": "2026-11-19",
+      "cover": "covers/034.jpg",
+      "link": "https://www.instagram.com/p/Df67iM3I7VR/"
+    },
+    {
+      "num": "017",
+      "title": "게이커플 대형견남이 늑대가 될 때",
+      "order": 14,
+      "date": "2026-11-22",
+      "cover": "covers/017.jpg",
+      "link": "https://www.instagram.com/p/DgCJMskI9d5/"
+    },
+    {
+      "num": "018",
+      "title": "게이는 군대 가면 천국?",
+      "order": 15,
+      "date": "2026-11-25",
+      "cover": "covers/018.jpg",
+      "link": "https://www.instagram.com/p/DgKILHvmCIJ/"
+    }
+  ]
+}
