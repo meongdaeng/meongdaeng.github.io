@@ -4,8 +4,9 @@ import { computed } from 'vue'
 
 const props = defineProps({ text: { type: String, required: true } })
 
-const NAMES = { 멍이: 'meong', 대형견남: 'meong', 댕이: 'daeng', 소형견남: 'daeng' }
-const PATTERN = /(멍이|댕이|대형견남|소형견남)/
+// 영문판 이름 Meong·Daeng도 (direction.md "영문판")
+const NAMES = { 멍이: 'meong', 대형견남: 'meong', 댕이: 'daeng', 소형견남: 'daeng', Meong: 'meong', Daeng: 'daeng' }
+const PATTERN = /(멍이|댕이|대형견남|소형견남|Meong|Daeng)/
 
 const parts = computed(() =>
   props.text

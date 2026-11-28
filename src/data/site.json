@@ -13,6 +13,17 @@
     "youtube": {
       "url": "https://www.youtube.com/channel/UCSRV5n3iOQhl9k49B6HebHA",
       "handle": "@멍댕툰"
+    },
+    "en": {
+      "name": "MeongDaeng Comics | Korean Gay Couple",
+      "bio": [
+        "🐶 188cm big puppy Meong × 170cm small puppy Daeng",
+        "🌈 A gay couple living in Korea"
+      ],
+      "instagram": {
+        "url": "https://www.instagram.com/meongdaeng.comics/",
+        "handle": "@meongdaeng.comics"
+      }
     }
   },
   "start": "000",
@@ -136,6 +147,32 @@
       "date": "2026-11-25",
       "cover": "covers/018.jpg",
       "link": "https://www.instagram.com/p/DgKILHvmCIJ/"
+    }
+  ],
+  "episodes_en": [
+    {
+      "num": "000",
+      "title": "Meet Meong & Daeng",
+      "order": 1,
+      "date": "2026-11-28",
+      "cover": "covers-en/000.jpg",
+      "link": "https://www.instagram.com/p/DgRZLaEj4PU/"
+    },
+    {
+      "num": "004",
+      "title": "When a Man Loves a Man",
+      "order": 2,
+      "date": "2026-11-28",
+      "cover": "covers-en/004.jpg",
+      "link": "https://www.instagram.com/p/DgRaRcNj2Gw/"
+    },
+    {
+      "num": "005",
+      "title": "Why I'm Dating a Guy 18cm Bigger",
+      "order": 3,
+      "date": "2026-11-28",
+      "cover": "covers-en/005.jpg",
+      "link": "https://www.instagram.com/p/DgRbCgwj92o/"
     }
   ]
 }

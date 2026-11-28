@@ -1,44 +1,134 @@
 <script setup>
 // 화면에 나오는 회차·소개는 모두 site.json에서 온다 (tools/build_data.py가 작업 공간 원천 파일로 만든다).
 // 꾸밈 그림은 public/art/ (tools/make_art.py가 Codex 원본으로 만든다).
-import { ref } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import site from './data/site.json'
 import Named from './components/Named.vue'
 import EpisodeCard from './components/EpisodeCard.vue'
 import CoverRibbon from './components/CoverRibbon.vue'
 
-const { profile, episodes } = site
+const { profile } = site
+const en = profile.en
 
-// "멍댕툰 | 게이커플툰" → 로고(멍·댕을 이름 색으로)와 꼬리 글씨
-const [logo, tagline = ''] = profile.name.split('|').map((s) => s.trim())
-const letterClass = (c) => ({ 멍: 'meong', 댕: 'daeng' })[c] || 'ink'
+// ---------- 언어 ----------
+// ?lang=ko|en > 방문자가 직접 고른 값(localStorage) > 브라우저 언어 설정 (한국어면 ko, 그 밖은 en)
+function initialLang() {
+  const q = new URLSearchParams(location.search).get('lang')
+  if (q === 'ko' || q === 'en') return q
+  try {
+    const saved = localStorage.getItem('lang')
+    if (saved === 'ko' || saved === 'en') return saved
+  } catch {}
+  const langs = navigator.languages?.length ? navigator.languages : [navigator.language || '']
+  return langs.some((l) => l.toLowerCase().startsWith('ko')) ? 'ko' : 'en'
+}
+const lang = ref(initialLang())
+const ko = computed(() => lang.value === 'ko')
+function setLang(l) {
+  lang.value = l
+  try {
+    localStorage.setItem('lang', l)
+  } catch {}
+  window.scrollTo({ top: 0 })
+}
 
-// 게시글 링크가 아직 없으면 인스타 프로필로 보낸다
-const hrefOf = (ep) => ep.link || profile.instagram.url
+// 화면 글씨. 한국어는 원래 문구, 영어는 프로필.md "영문 인스타"와 그 번역
+const T = {
+  ko: {
+    name: profile.name,
+    bio: profile.bio,
+    insta: profile.instagram,
+    other: en.instagram,
+    heroArt: '멍이와 댕이 하이파이브',
+    instaBtn: '인스타그램에서 보기',
+    otherBtn: '영어판 인스타그램',
+    duo: ['멍이', '댕이'],
+    duoSub: '동갑인데 키는 18cm 차이',
+    startHead: ['처음 오셨다면', '여기부터'],
+    startBtn: '첫 편 보기',
+    see: (s) => `${s} 보기`,
+    all: '전체 회차',
+    allSub: (n) => `올린 순서대로 ${n}편`,
+    bye: '손 흔드는 멍이와 댕이',
+    footInsta: '인스타그램',
+    footOther: '영어판',
+    copy: '© 멍댕툰',
+    switchTo: 'EN',
+    switchLabel: 'Switch to English',
+  },
+  en: {
+    name: en.name,
+    bio: en.bio,
+    insta: en.instagram,
+    other: profile.instagram,
+    heroArt: 'Meong and Daeng high-five',
+    instaBtn: 'Read on Instagram',
+    otherBtn: 'Korean originals',
+    duo: ['Meong', 'Daeng'],
+    duoSub: 'Same age, 18cm apart',
+    startHead: ['New here?', 'Start here'],
+    startBtn: 'Read the first one',
+    see: (s) => `Read ${s}`,
+    all: 'All comics',
+    allSub: (n) => `${n} so far, in upload order`,
+    soonHead: 'English comics are on the way',
+    soonText: "We're translating our comics into English. Follow us to catch the first one.",
+    soonBtn: 'Follow on Instagram',
+    bye: 'Meong and Daeng waving',
+    footInsta: 'Instagram',
+    footOther: 'Korean originals',
+    copy: '© MeongDaeng Comics',
+    switchTo: '한국어',
+    switchLabel: '한국어로 보기',
+  },
+}
+const t = computed(() => T[lang.value])
 
-const start = episodes.find((e) => e.num === site.start)
+watchEffect(() => {
+  document.documentElement.lang = lang.value
+  document.title = t.value.name
+})
+
+// 회차: 한국어 페이지는 한국 계정 회차, 영어 페이지는 영문 계정에 올린 영문판
+const episodes = computed(() => (ko.value ? site.episodes : site.episodes_en || []))
+// 띠는 꾸밈이라 영문판이 적을 때는 한국어 표지를 그대로 흘린다
+const ribbon = computed(() => (episodes.value.length >= 6 ? episodes.value : site.episodes))
+
+// "멍댕툰 | 게이커플툰" → 로고(멍·댕을 이름 색으로)와 꼬리 글씨.
+// 영어 "MeongDaeng Comics | Korean Gay Couple" → 로고 두 줄 MeongDaeng / Comics
+const logoParts = computed(() => t.value.name.split('|').map((s) => s.trim()))
+const tagline = computed(() => logoParts.value[1] || '')
+const logoLines = computed(() => {
+  const mark = logoParts.value[0]
+  if (ko.value) return [[...mark].map((c) => ({ c, cls: { 멍: 'meong', 댕: 'daeng' }[c] || 'ink' }))]
+  const [word, ...rest] = mark.split(' ')
+  const colored = [...word].map((c, i) => ({ c, cls: i < 5 ? 'meong' : i < 10 ? 'daeng' : 'ink' }))
+  return rest.length ? [colored, [...rest.join(' ')].map((c) => ({ c, cls: 'ink' }))] : [colored]
+})
+
+// 게시글 링크가 아직 없으면 그 언어 계정의 인스타 프로필로 보낸다
+const hrefOf = (ep) => ep.link || t.value.insta.url
+
+const start = computed(() => episodes.value.find((e) => e.num === site.start))
 
 // 인물 소개. 툰에 실제로 나온 말만 쓴다 (업로드한 회차, characters/ 인물 파일 "공개된 정보" 표).
 // 자막: 005 12장 자연 다큐 자막 "대형견 (188cm)". 말풍선: 017 4장 멍이, 11장 댕이 대사.
-// 소개: 사용자 문구 (2026-11-27)
+// 소개: 사용자 문구 (2026-11-27). 영어는 그 번역 (이름 Meong·Daeng, direction.md "영문판")
 const CHARS = [
   {
     key: 'meong',
-    name: '멍이',
     art: '/art/meong.webp',
-    tag: '대형견 (188cm)',
-    quote: '아닌데 멋있는 건데',
-    narr: '늘 남자다운 늑대가 되고 싶어 하지만 실상은...',
+    ko: { name: '멍이', tag: '대형견 (188cm)', quote: '아닌데 멋있는 건데', narr: '늘 남자다운 늑대가 되고 싶어 하지만 실상은...' },
+    en: { name: 'Meong', tag: 'Big puppy (188cm)', quote: "Nuh-uh, it's cool!", narr: 'Always wants to be a manly wolf, but in reality...' },
   },
   {
     key: 'daeng',
-    name: '댕이',
     art: '/art/daeng.webp',
-    tag: '소형견 (170cm)',
-    quote: '이게 늑대 맞아?',
-    narr: '늘 본인은 귀엽지 않다고 주장하는데...',
+    ko: { name: '댕이', tag: '소형견 (170cm)', quote: '이게 늑대 맞아?', narr: '늘 본인은 귀엽지\u00a0않다고 주장하는데...' },
+    en: { name: 'Daeng', tag: 'Small puppy (170cm)', quote: 'Is that a wolf?', narr: "Always insists he's not cute, but..." },
   },
 ]
+const chars = computed(() => CHARS.map((c) => ({ key: c.key, art: c.art, ...c[lang.value] })))
 
 const TILTS = [-2, 1.5, -1, 2, -1.5, 1]
 const tilt = (i) => TILTS[i % TILTS.length]
@@ -71,6 +161,13 @@ function cheer() {
 <template>
   <!-- ---------- 첫 화면 ---------- -->
   <header class="hero">
+    <button class="lang-switch" type="button" :aria-label="t.switchLabel" @click="setLang(ko ? 'en' : 'ko')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" />
+      </svg>
+      {{ t.switchTo }}
+    </button>
     <div class="floaters" aria-hidden="true">
       <img class="f f1" src="/art/sticker-heart-pink.webp" alt="" />
       <img class="f f2" src="/art/sticker-paw-blue.webp" alt="" />
@@ -83,7 +180,7 @@ function cheer() {
     </div>
 
     <div class="hero-inner">
-      <button class="hero-art" type="button" aria-label="멍이와 댕이 하이파이브" @click="cheer">
+      <button class="hero-art" type="button" :aria-label="t.heroArt" @click="cheer">
         <span class="halo" aria-hidden="true"></span>
         <img :class="{ boing }" src="/art/hero.webp" alt="" width="1100" height="1100" @animationend="boing = false" />
         <span v-for="b in bursts" :key="b.id" class="burst" aria-hidden="true">
@@ -98,55 +195,68 @@ function cheer() {
       </button>
 
       <div class="hero-text">
-        <h1 class="logo" :aria-label="profile.name">
-          <span
-            v-for="(c, i) in [...logo]"
-            :key="i"
-            :class="letterClass(c)"
-            :style="{ animationDelay: `${150 + i * 120}ms` }"
-            aria-hidden="true"
-            >{{ c }}</span
-          >
+        <h1 :key="lang" class="logo" :class="{ en: !ko }" :aria-label="t.name">
+          <span v-for="(line, l) in logoLines" :key="l" class="logo-line">
+            <span
+              v-for="(p, i) in line"
+              :key="i"
+              :class="p.cls"
+              :style="{ animationDelay: `${150 + (l * 10 + i) * (ko ? 120 : 45)}ms` }"
+              aria-hidden="true"
+              >{{ p.c === ' ' ? ' ' : p.c }}</span
+            >
+          </span>
         </h1>
         <p v-if="tagline" class="tagline">{{ tagline }}</p>
         <div class="bio">
-          <p v-for="line in profile.bio" :key="line"><Named :text="line" /></p>
+          <p v-for="line in t.bio" :key="line"><Named :text="line" /></p>
         </div>
         <nav class="cta">
-          <a class="btn pink" :href="profile.instagram.url" target="_blank" rel="noopener">
+          <a class="btn pink" :href="t.insta.url" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
               <rect x="3" y="3" width="18" height="18" rx="5.5" />
               <circle cx="12" cy="12" r="4.2" />
               <circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none" />
             </svg>
-            인스타그램에서 보기
+            {{ t.instaBtn }}
           </a>
-          <a class="btn blue" :href="profile.youtube.url" target="_blank" rel="noopener">
+          <a v-if="ko" class="btn blue" :href="profile.youtube.url" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <rect x="2" y="5" width="20" height="14" rx="4.5" fill="currentColor" />
               <path d="M10 9.2v5.6l4.8-2.8z" fill="#4f6e93" />
             </svg>
             유튜브 쇼츠 보기
           </a>
+          <a v-else class="btn blue" :href="t.other.url" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="5.5" />
+              <circle cx="12" cy="12" r="4.2" />
+              <circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none" />
+            </svg>
+            {{ t.otherBtn }}
+          </a>
         </nav>
+        <p v-if="ko" class="other-insta">
+          <a :href="t.other.url" target="_blank" rel="noopener">{{ t.otherBtn }} {{ t.other.handle }}</a>
+        </p>
       </div>
     </div>
   </header>
 
   <div class="ribbons">
-    <CoverRibbon :episodes="episodes" color="pink" />
-    <CoverRibbon :episodes="[...episodes].reverse()" color="blue" reverse />
+    <CoverRibbon :episodes="ribbon" color="pink" />
+    <CoverRibbon :episodes="[...ribbon].reverse()" color="blue" reverse />
   </div>
 
   <main>
     <!-- ---------- 멍이 × 댕이 ---------- -->
     <section class="wrap duo">
       <div v-reveal class="duo-head">
-        <h2><span class="meong">멍이</span> × <span class="daeng">댕이</span></h2>
-        <p class="sub duo-sub">동갑인데 키는 18cm 차이</p>
+        <h2><span class="meong">{{ t.duo[0] }}</span> × <span class="daeng">{{ t.duo[1] }}</span></h2>
+        <p class="sub duo-sub">{{ t.duoSub }}</p>
       </div>
-      <div class="duo-grid">
-        <article v-for="(c, i) in CHARS" :key="c.key" v-reveal="i * 120" class="char" :class="c.key">
+      <div class="duo-grid" :class="{ en: !ko }">
+        <article v-for="(c, i) in chars" :key="c.key" v-reveal="i * 120" class="char" :class="c.key">
           <p class="bubble">{{ c.quote }}</p>
           <img class="char-art" :src="c.art" :alt="c.name" width="1100" height="1100" loading="lazy" />
           <h3 class="char-name">{{ c.name }}</h3>
@@ -161,23 +271,35 @@ function cheer() {
       <div v-reveal class="start-card">
         <img class="start-mascot" src="/art/start.webp" alt="" width="1100" height="1100" loading="lazy" />
         <div class="start-text">
-          <h2>처음 오셨다면<br />여기부터</h2>
+          <h2>{{ t.startHead[0] }}<br />{{ t.startHead[1] }}</h2>
           <p class="start-title"><Named :text="start.title" /></p>
           <p class="start-date">{{ dot(start.date) }}</p>
-          <a class="btn pink" :href="hrefOf(start)" target="_blank" rel="noopener">첫 편 보기</a>
+          <a class="btn pink" :href="hrefOf(start)" target="_blank" rel="noopener">{{ t.startBtn }}</a>
         </div>
-        <a class="start-cover" :href="hrefOf(start)" target="_blank" rel="noopener" :aria-label="`${start.title} 보기`">
+        <a class="start-cover" :href="hrefOf(start)" target="_blank" rel="noopener" :aria-label="t.see(start.title)">
           <img :src="start.cover" alt="" width="540" height="675" />
         </a>
       </div>
     </section>
 
     <!-- ---------- 전체 회차 ---------- -->
-    <section class="wrap block">
+    <!-- 영어 페이지인데 영문판을 아직 안 올렸으면: 곧 나온다는 카드 -->
+    <section v-if="!episodes.length" class="wrap start">
+      <div v-reveal class="start-card soon">
+        <img class="start-mascot" src="/art/episodes.webp" alt="" width="1100" height="733" loading="lazy" />
+        <div class="start-text">
+          <h2>{{ t.soonHead }}</h2>
+          <p class="soon-text">{{ t.soonText }}</p>
+          <a class="btn pink" :href="t.insta.url" target="_blank" rel="noopener">{{ t.soonBtn }}</a>
+        </div>
+      </div>
+    </section>
+
+    <section v-else class="wrap block">
       <div class="head">
         <div v-reveal>
-          <h2>전체 회차</h2>
-          <p class="sub">올린 순서대로 {{ episodes.length }}편</p>
+          <h2>{{ t.all }}</h2>
+          <p class="sub">{{ t.allSub(episodes.length) }}</p>
         </div>
         <img v-reveal="120" class="mascot wide" src="/art/episodes.webp" alt="" width="1100" height="733" loading="lazy" />
       </div>
@@ -197,15 +319,18 @@ function cheer() {
   <!-- ---------- 꼬리 ---------- -->
   <footer class="foot">
     <div class="foot-inner">
-      <img v-reveal class="bye" src="/art/bye.webp" alt="손 흔드는 멍이와 댕이" width="1100" height="1100" loading="lazy" />
-      <p class="logo small" aria-label="멍댕툰">
-        <span v-for="(c, i) in [...logo]" :key="i" :class="letterClass(c)" aria-hidden="true">{{ c }}</span>
+      <img v-reveal class="bye" src="/art/bye.webp" :alt="t.bye" width="1100" height="1100" loading="lazy" />
+      <p class="logo small" :class="{ en: !ko }" :aria-label="logoParts[0]">
+        <span v-for="(line, l) in logoLines" :key="l" class="logo-line">
+          <span v-for="(p, i) in line" :key="i" :class="p.cls" aria-hidden="true">{{ p.c === ' ' ? ' ' : p.c }}</span>
+        </span>
       </p>
       <nav class="cta foot-cta">
-        <a class="btn pink" :href="profile.instagram.url" target="_blank" rel="noopener">인스타그램 {{ profile.instagram.handle }}</a>
-        <a class="btn blue" :href="profile.youtube.url" target="_blank" rel="noopener">유튜브 {{ profile.youtube.handle }}</a>
+        <a class="btn pink" :href="t.insta.url" target="_blank" rel="noopener">{{ t.footInsta }} {{ t.insta.handle }}</a>
+        <a v-if="ko" class="btn blue" :href="profile.youtube.url" target="_blank" rel="noopener">유튜브 {{ profile.youtube.handle }}</a>
+        <a class="btn blue" :href="t.other.url" target="_blank" rel="noopener">{{ t.footOther }} {{ t.other.handle }}</a>
       </nav>
-      <p class="copy">© 멍댕툰</p>
+      <p class="copy">{{ t.copy }}</p>
     </div>
   </footer>
 </template>
@@ -450,7 +575,7 @@ function cheer() {
 
   .cta {
     grid-template-columns: 1fr 1fr;
-    max-width: 480px;
+    max-width: 540px;
     margin-left: 0;
   }
 
@@ -481,7 +606,9 @@ function cheer() {
 
   .cta .btn {
     min-height: 60px;
+    padding: 0 20px;
     font-size: 18px;
+    white-space: nowrap;
   }
 }
 
@@ -925,5 +1052,126 @@ h2 {
   font-size: 12.5px;
   font-weight: 600;
   opacity: 0.85;
+}
+
+/* ================= 언어 (한국어 / 영어) ================= */
+.lang-switch {
+  position: absolute;
+  z-index: 5;
+  top: 14px;
+  right: var(--gutter);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--mark);
+  font-size: 17px;
+  box-shadow: 0 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.lang-switch:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.lang-switch svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 영어 로고는 MeongDaeng / Comics 두 줄이라 글자를 줄인다 */
+.logo .logo-line {
+  display: block;
+  animation: none;
+  text-shadow: none;
+}
+
+.logo.en {
+  font-size: min(80px, 14vw);
+  line-height: 0.95;
+}
+
+.logo.en .logo-line {
+  white-space: nowrap;
+}
+
+.logo.small.en {
+  font-size: 40px;
+}
+
+.other-insta {
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.other-insta a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 영어 말풍선은 글자가 길어 조금 작게 */
+.duo-grid.en .bubble {
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.duo-grid.en .tag {
+  font-size: 11.5px;
+  white-space: nowrap;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* 영문판이 아직 없을 때 카드: 그림 위, 글 아래 */
+.soon .start-mascot {
+  position: static;
+  justify-self: center;
+  width: 78%;
+  max-width: 300px;
+}
+
+.soon h2 {
+  line-height: 1.15;
+}
+
+.soon-text {
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 900px) {
+  .lang-switch {
+    top: 22px;
+  }
+
+  /* 글 칸이 화면의 절반쯤이라 MeongDaeng 한 줄이 들어가게 */
+  .logo.en {
+    font-size: min(84px, calc(7.6vw - 10px));
+  }
+
+  .duo-grid.en .bubble {
+    font-size: 26px;
+  }
+
+  .soon.start-card {
+    grid-template-columns: 320px 1fr;
+  }
+
+  .soon .start-mascot {
+    width: 100%;
+    max-width: none;
+  }
 }
 </style>
