@@ -618,6 +618,17 @@ function cheer() {
   display: grid;
   gap: 0;
   margin: 8px 0 20px;
+  /* 기울인 띠가 화면 양옆으로 26px쯤 삐져나온다. body의 overflow-x: hidden만으로는 폰(사파리·인앱 브라우저)에서
+     페이지가 옆으로 밀리므로 여기서 가로만 자른다 (clip은 세로를 그대로 두고 스크롤 상자도 만들지 않는다) */
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  .ribbons {
+    overflow: hidden;
+    padding: 24px 0;
+    margin: -16px 0 4px;
+  }
 }
 
 .ribbons > :last-child {
